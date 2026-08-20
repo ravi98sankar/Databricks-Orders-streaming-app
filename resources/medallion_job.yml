@@ -36,13 +36,15 @@ resources:
         - task_key: lakebase_sync
           depends_on:
             - task_key: dbt_run_test
-          new_cluster:
-            spark_version: 15.4.x-scala2.12
-            node_type_id: Standard_DS3_v2
-            num_workers: 1
-          libraries:
-            - maven:
-                coordinates: org.postgresql:postgresql:42.7.3
+          environment_key: lakebase_env
+          # This workspace only supports serverless compute -- new_cluster
+          # (classic) was rejected outright. Serverless environments only
+          # support pip-installable dependencies, not Maven/JVM libraries,
+          # so the org.postgresql:postgresql Maven library from the classic
+          # attempt is dropped here; serverless's base runtime is expected
+          # to already carry a Postgres JDBC driver. If the real (non-dry-run)
+          # write later fails with a "no suitable driver" error, that
+          # assumption is wrong and needs revisiting.
           spark_python_task:
             python_file: ${workspace.file_path}/scripts/03_lakebase_sync.py
             parameters:
@@ -65,15 +67,8 @@ resources:
             environment_version: "4"
             dependencies:
               - dbt-databricks>=1.8.0,<2.0.0
-
-      # Uncomment and remove `environment_key: dbt_env` above if serverless
-      # compute isn't enabled for this workspace/region:
-      #
-      # job_clusters:
-      #   - job_cluster_key: dbt_cluster
-      #     new_cluster:
-      #       spark_version: 15.4.x-scala2.12
-      #       node_type_id: Standard_DS3_v2
-      #       num_workers: 1
-      # and set `job_cluster_key: dbt_cluster` on the dbt_run_test task
-      # instead of `environment_key: dbt_env`.
+        - environment_key: lakebase_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - psycopg2-binary
