@@ -24,11 +24,18 @@ resources:
             catalog: ${var.catalog}
             schema: ${var.schema}
             warehouse_id: ${var.warehouse_id}
+            # Supplying catalog/schema/warehouse_id above makes Databricks
+            # auto-generate and manage the dbt connection profile itself,
+            # under a fixed target name "databricks_cluster" -- our own
+            # profiles.yml's "dev"/"prod" target names are NOT used here
+            # (confirmed by a real run error: "does not have a target named
+            # 'dev'"). Do not pass --target on these commands; dev/prod
+            # schema separation already happens via ${var.schema} above.
             commands:
               - "dbt deps"
-              - "dbt seed --target=${bundle.target}"
-              - "dbt run --target=${bundle.target}"
-              - "dbt test --target=${bundle.target}"
+              - "dbt seed"
+              - "dbt run"
+              - "dbt test"
 
         # LakeBase sync is an external Postgres JDBC write -- not expressible
         # as a dbt model / Lakeflow table, so it runs as a plain Spark task
