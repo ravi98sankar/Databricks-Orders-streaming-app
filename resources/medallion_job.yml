@@ -12,11 +12,12 @@ resources:
         - task_key: dbt_run_test
           environment_key: dbt_env
           dbt_task:
-            # Paths in resource YAML resolve relative to THIS file's folder
-            # (resources/), not the repo root -- dbt_project.yml/profiles.yml
-            # live one level up.
-            project_directory: ..
-            profiles_directory: ..
+            # ${workspace.file_path} is the absolute workspace path the
+            # bundle's files get synced to (repo root) -- the Jobs API
+            # rejects ".."-style traversal in these fields, so this is the
+            # correct way to point at dbt_project.yml/profiles.yml.
+            project_directory: ${workspace.file_path}
+            profiles_directory: ${workspace.file_path}
             catalog: ${var.catalog}
             schema: ${var.schema}
             warehouse_id: ${var.warehouse_id}
@@ -40,7 +41,7 @@ resources:
             - maven:
                 coordinates: org.postgresql:postgresql:42.7.3
           spark_python_task:
-            python_file: ../scripts/03_lakebase_sync.py
+            python_file: ${workspace.file_path}/scripts/03_lakebase_sync.py
             parameters:
               - "--catalog"
               - ${var.catalog}
