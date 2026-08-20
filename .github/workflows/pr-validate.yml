@@ -19,9 +19,21 @@ jobs:
   bundle-validate:
     name: Validate Databricks Asset Bundle
     runs-on: ubuntu-latest
+    # Always "development" here, even for the target: prod matrix leg --
+    # `bundle validate` only checks structure/references, it doesn't need
+    # prod-scoped credentials. This deliberately avoids ever attaching a
+    # PR-triggered job to the "production" environment, so a future
+    # required-reviewer rule on production can't block routine PR checks.
+    environment: development
     strategy:
       matrix:
         target: [dev, prod]
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      DATABRICKS_BUNDLE_VAR_service_principal_id: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_BUNDLE_VAR_warehouse_id: ${{ secrets.DATABRICKS_WAREHOUSE_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -29,8 +41,4 @@ jobs:
         uses: databricks/setup-cli@main
 
       - name: Validate bundle (${{ matrix.target }})
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
-          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
         run: databricks bundle validate -t ${{ matrix.target }}

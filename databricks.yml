@@ -5,12 +5,6 @@ include:
   - resources/*.yml
 
 variables:
-  databricks_host:
-    description: >
-      Azure Databricks workspace URL. Same workspace for dev and prod in
-      this project -- only catalog/schema differ per target.
-    default: https://<your-workspace>.azuredatabricks.net
-
   catalog:
     description: Unity Catalog catalog name.
     default: main
@@ -35,8 +29,10 @@ targets:
   dev:
     mode: development
     default: true
-    workspace:
-      host: ${var.databricks_host}
+    # workspace.host is intentionally NOT set here -- auth fields can't use
+    # ${var...} interpolation. Supply it via the DATABRICKS_HOST env var at
+    # runtime instead (already how deploy-dev.yml/deploy-prod.yml work; for
+    # local runs, `export DATABRICKS_HOST=https://<your-workspace>...` first).
     variables:
       schema: medallion_orders_dev
     run_as:
@@ -44,8 +40,6 @@ targets:
 
   prod:
     mode: production
-    workspace:
-      host: ${var.databricks_host}
     variables:
       schema: medallion_orders
     run_as:

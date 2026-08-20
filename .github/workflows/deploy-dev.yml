@@ -10,6 +10,12 @@ jobs:
     name: Deploy bundle to dev
     runs-on: ubuntu-latest
     environment: development
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      DATABRICKS_BUNDLE_VAR_service_principal_id: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_BUNDLE_VAR_warehouse_id: ${{ secrets.DATABRICKS_WAREHOUSE_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -17,22 +23,10 @@ jobs:
         uses: databricks/setup-cli@main
 
       - name: Validate bundle
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
-          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
         run: databricks bundle validate -t dev
 
       - name: Deploy bundle
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
-          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
         run: databricks bundle deploy -t dev
 
       - name: Run medallion pipeline job
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
-          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
         run: databricks bundle run medallion_pipeline_job -t dev
