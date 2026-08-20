@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: bronze_orders
+    description: >
+      Raw order events landed via Auto Loader. Minimally validated by
+      design -- bronze is the raw capture layer; real validation happens
+      in silver.
+    tags: ["bronze", "sql_medallion"]
+    columns:
+      - name: order_id
+        description: Source order identifier, not yet deduplicated.
+        tests:
+          - not_null
+      - name: _ingested_at
+        description: Timestamp this row was ingested into bronze.
+        tests:
+          - not_null

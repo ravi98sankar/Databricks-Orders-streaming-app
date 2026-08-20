@@ -1,0 +1,25 @@
+version: 2
+
+models:
+  - name: silver_orders
+    description: >
+      Quality-filtered, deduplicated (latest per order_id), and flattened
+      order records.
+    tags: ["silver", "sql_medallion"]
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        tests:
+          - not_null
+      - name: amount
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0.01
+      - name: status
+        tests:
+          - accepted_values:
+              values: ["COMPLETED", "PENDING"]

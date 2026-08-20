@@ -1,0 +1,72 @@
+resources:
+  jobs:
+    medallion_pipeline_job:
+      name: medallion-pipeline-${bundle.target}
+
+      tasks:
+        # Bronze -> Silver -> Gold (SQL models) + the Python-model showcase,
+        # all run in one `dbt run` since they share the same dbt project /
+        # DAG. streaming_table / materialized_view models are backed by a
+        # Databricks-managed Lakeflow Declarative Pipeline automatically --
+        # no separate pipeline resource is declared here.
+        - task_key: dbt_run_test
+          environment_key: dbt_env
+          dbt_task:
+            project_directory: .
+            profiles_directory: .
+            catalog: ${var.catalog}
+            schema: ${var.schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt seed --target=${bundle.target}"
+              - "dbt run --target=${bundle.target}"
+              - "dbt test --target=${bundle.target}"
+
+        # LakeBase sync is an external Postgres JDBC write -- not expressible
+        # as a dbt model / Lakeflow table, so it runs as a plain Spark task
+        # after the dbt run/test succeed.
+        - task_key: lakebase_sync
+          depends_on:
+            - task_key: dbt_run_test
+          new_cluster:
+            spark_version: 15.4.x-scala2.12
+            node_type_id: Standard_DS3_v2
+            num_workers: 1
+          libraries:
+            - maven:
+                coordinates: org.postgresql:postgresql:42.7.3
+          spark_python_task:
+            python_file: ./scripts/03_lakebase_sync.py
+            parameters:
+              - "--catalog"
+              - ${var.catalog}
+              - "--schema"
+              - ${var.schema}
+              - "--secret-scope"
+              - lakebase-${bundle.target}
+          # Dry-run by default (safe): the script only attempts a real JDBC
+          # write when both DRY_RUN=false AND the secret scope resolves a
+          # non-empty password. Uncomment to enable real writes once the
+          # LakeBase secret has been set (see resources/secrets.yml):
+          # spark_env_vars:
+          #   DRY_RUN: "false"
+
+      environments:
+        - environment_key: dbt_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbt-databricks>=1.8.0,<2.0.0
+
+      # Uncomment and remove `environment_key: dbt_env` above if serverless
+      # compute isn't enabled for this workspace/region:
+      #
+      # job_clusters:
+      #   - job_cluster_key: dbt_cluster
+      #     new_cluster:
+      #       spark_version: 15.4.x-scala2.12
+      #       node_type_id: Standard_DS3_v2
+      #       num_workers: 1
+      # and set `job_cluster_key: dbt_cluster` on the dbt_run_test task
+      # instead of `environment_key: dbt_env`.

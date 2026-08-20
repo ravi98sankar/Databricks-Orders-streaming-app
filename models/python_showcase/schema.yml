@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: bronze_orders_py
+    description: Python-model port of models/bronze/bronze_orders.sql.
+    tags: ["python_showcase"]
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+
+  - name: silver_orders_py
+    description: Python-model port of models/silver/silver_orders.sql.
+    tags: ["python_showcase"]
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        tests:
+          - not_null
+
+  - name: gold_customer_metrics_py
+    description: Python-model port of models/gold/gold_customer_metrics.sql.
+    tags: ["python_showcase"]
+    columns:
+      - name: user_id
+        tests:
+          - not_null
+          - unique
+      - name: total_lifetime_spend
+        tests:
+          - not_null

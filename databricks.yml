@@ -1,0 +1,55 @@
+bundle:
+  name: medallion_orders
+
+include:
+  - resources/*.yml
+
+variables:
+  databricks_host:
+    description: >
+      Azure Databricks workspace URL. Same workspace for dev and prod in
+      this project -- only catalog/schema differ per target.
+    default: https://<your-workspace>.azuredatabricks.net
+
+  catalog:
+    description: Unity Catalog catalog name.
+    default: main
+
+  schema:
+    description: Target schema for the medallion models. Overridden per target below.
+    default: medallion_orders_dev
+
+  warehouse_id:
+    description: >
+      SQL warehouse ID used by the dbt_task to run the SQL models
+      (streaming_table / materialized_view DDL). No default on purpose --
+      supply it via --var, a target override, or the DATABRICKS_BUNDLE_VAR_
+      env var convention.
+
+  service_principal_id:
+    description: >
+      Application (client) ID of the service principal GitHub Actions
+      deploys and runs as. No default on purpose.
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: ${var.databricks_host}
+    variables:
+      schema: medallion_orders_dev
+    run_as:
+      service_principal_name: ${var.service_principal_id}
+
+  prod:
+    mode: production
+    workspace:
+      host: ${var.databricks_host}
+    variables:
+      schema: medallion_orders
+    run_as:
+      service_principal_name: ${var.service_principal_id}
+    permissions:
+      - service_principal_name: ${var.service_principal_id}
+        level: CAN_MANAGE

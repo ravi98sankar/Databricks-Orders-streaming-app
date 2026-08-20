@@ -1,0 +1,9 @@
+# Core Databricks Connect
+databricks-connect==13.3.13
+
+# Optional: for loading environment variables from .env
+python-dotenv>=1.0.0
+
+# dbt dependencies (installed via dbt deps, but useful for IDE)
+dbt-databricks>=1.5.0
+dbt-utils>=1.1.0
