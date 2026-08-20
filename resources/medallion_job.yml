@@ -15,9 +15,12 @@ resources:
             # ${workspace.file_path} is the absolute workspace path the
             # bundle's files get synced to (repo root) -- the Jobs API
             # rejects ".."-style traversal in these fields, so this is the
-            # correct way to point at dbt_project.yml/profiles.yml.
+            # correct way to point at dbt_project.yml. profiles_directory,
+            # unlike project_directory, must be RELATIVE TO project_directory
+            # (an absolute path here was rejected the same way ".." was) --
+            # profiles.yml lives in the same folder, so that's just ".".
             project_directory: ${workspace.file_path}
-            profiles_directory: ${workspace.file_path}
+            profiles_directory: .
             catalog: ${var.catalog}
             schema: ${var.schema}
             warehouse_id: ${var.warehouse_id}
