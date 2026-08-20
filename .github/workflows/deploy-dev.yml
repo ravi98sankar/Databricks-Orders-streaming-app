@@ -14,8 +14,8 @@ jobs:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
       DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
-      DATABRICKS_BUNDLE_VAR_service_principal_id: ${{ secrets.DATABRICKS_CLIENT_ID }}
-      DATABRICKS_BUNDLE_VAR_warehouse_id: ${{ secrets.DATABRICKS_WAREHOUSE_ID }}
+      BUNDLE_VAR_service_principal_id: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      BUNDLE_VAR_warehouse_id: ${{ secrets.DATABRICKS_WAREHOUSE_ID }}
     steps:
       - uses: actions/checkout@v4
 

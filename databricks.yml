@@ -17,7 +17,7 @@ variables:
     description: >
       SQL warehouse ID used by the dbt_task to run the SQL models
       (streaming_table / materialized_view DDL). No default on purpose --
-      supply it via --var, a target override, or the DATABRICKS_BUNDLE_VAR_
+      supply it via --var, a target override, or the BUNDLE_VAR_warehouse_id
       env var convention.
 
   service_principal_id:
