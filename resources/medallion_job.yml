@@ -12,8 +12,11 @@ resources:
         - task_key: dbt_run_test
           environment_key: dbt_env
           dbt_task:
-            project_directory: .
-            profiles_directory: .
+            # Paths in resource YAML resolve relative to THIS file's folder
+            # (resources/), not the repo root -- dbt_project.yml/profiles.yml
+            # live one level up.
+            project_directory: ..
+            profiles_directory: ..
             catalog: ${var.catalog}
             schema: ${var.schema}
             warehouse_id: ${var.warehouse_id}
@@ -37,7 +40,7 @@ resources:
             - maven:
                 coordinates: org.postgresql:postgresql:42.7.3
           spark_python_task:
-            python_file: ./scripts/03_lakebase_sync.py
+            python_file: ../scripts/03_lakebase_sync.py
             parameters:
               - "--catalog"
               - ${var.catalog}
