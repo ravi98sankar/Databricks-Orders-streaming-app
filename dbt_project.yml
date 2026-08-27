@@ -18,8 +18,13 @@ clean-targets:
 
 models:
   medallion_orders:
-    +database: main
-    +schema: medallion_orders
+    # No +database/+schema override here on purpose: the connection profile
+    # (target.database / target.schema) is driven by the dbt_task's
+    # catalog/schema fields in resources/medallion_job.yml, which already
+    # differ correctly per bundle target (medallion_orders_dev vs
+    # medallion_orders). A per-model override here previously hardcoded
+    # every run to the literal "medallion_orders" schema regardless of
+    # target, causing a real SCHEMA_NOT_FOUND on the dev target.
     bronze:
       +materialized: streaming_table
       +tags: ["bronze", "sql_medallion"]
@@ -40,5 +45,7 @@ vars:
   "dbt_dq_tools:database": "main"
   min_valid_amount: 0.01
   vip_spend_threshold: 500.0
-  catalog: main
-  schema: medallion_orders
+  # No catalog/schema vars here on purpose -- see models/bronze/bronze_orders.sql,
+  # which uses target.database/target.schema instead so the Auto Loader
+  # landing path always matches whatever the active connection is actually
+  # using, with no separate hardcoded default to drift out of sync.

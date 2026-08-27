@@ -8,14 +8,12 @@ engineers/leadership can compare both authoring styles for the same
 pipeline. Lands in a distinct table (bronze_orders_py) so it doesn't
 collide with the SQL model's output.
 
-Landing path/catalog/schema mirror the vars used by the SQL models
-(dbt_project.yml `catalog`/`schema` vars) -- kept as local constants here
-because dbt Python models don't inherit the Jinja `var()` context.
+Landing path uses the Spark session's own current catalog/schema (whatever
+the job's dbt_task actually connected with -- medallion_orders_dev vs
+medallion_orders), not a hardcoded constant. An earlier version hardcoded
+this to the literal "medallion_orders", which caused a real SCHEMA_NOT_FOUND
+on the dev target since dev actually runs against medallion_orders_dev.
 """
-
-CATALOG = "main"
-SCHEMA = "medallion_orders"
-LANDING_PATH = f"/Volumes/{CATALOG}/{SCHEMA}/landing/orders/"
 
 RAW_ORDERS_SCHEMA = (
     "order_id STRING, user_id STRING, amount STRING, status STRING, "
@@ -31,11 +29,15 @@ def model(dbt, session):
 
     from pyspark.sql import functions as F
 
+    catalog = session.catalog.currentCatalog()
+    schema = session.catalog.currentDatabase()
+    landing_path = f"/Volumes/{catalog}/{schema}/landing/orders/"
+
     df_raw = (
         session.read.format("csv")
         .option("header", "true")
         .schema(RAW_ORDERS_SCHEMA)
-        .load(LANDING_PATH)
+        .load(landing_path)
     )
 
     df_bronze = (

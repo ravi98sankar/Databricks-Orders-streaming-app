@@ -19,7 +19,10 @@ SELECT
     current_timestamp() AS _ingested_at,
     _metadata.file_path AS _ingestion_source
 FROM STREAM read_files(
-    '/Volumes/{{ var("catalog", "main") }}/{{ var("schema", "medallion_orders") }}/landing/orders/',
+    -- target.database/target.schema (not a separate var) so this always
+    -- matches whatever catalog/schema the active connection is actually
+    -- using -- dev vs prod can never drift out of sync with a hardcoded var.
+    '/Volumes/{{ target.database }}/{{ target.schema }}/landing/orders/',
     format => 'csv',
     header => true,
     schema => 'order_id STRING, user_id STRING, amount STRING, status STRING, order_timestamp STRING, shipping_city STRING, shipping_state STRING'
