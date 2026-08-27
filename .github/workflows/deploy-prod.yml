@@ -31,4 +31,26 @@ jobs:
         run: databricks bundle deploy -t prod
 
       - name: Run medallion pipeline job
-        run: databricks bundle run medallion_pipeline_job -t prod
+        id: run_job
+        run: |
+          set +e
+          databricks bundle run medallion_pipeline_job -t prod 2>&1 | tee /tmp/run_output.log
+          status=${PIPESTATUS[0]}
+          run_id=$(grep -oE 'runs/[0-9]+' /tmp/run_output.log | head -1 | grep -oE '[0-9]+')
+          echo "job_run_id=$run_id" >> "$GITHUB_OUTPUT"
+          exit $status
+
+      # GitHub Actions never sees the actual dbt/Spark output -- only the
+      # top-level task pass/fail. On failure, pull each task's real output
+      # from the Jobs API so the error is visible right here instead of
+      # requiring a manual trip into the Databricks UI.
+      - name: Show task output on failure
+        if: failure() && steps.run_job.outputs.job_run_id != ''
+        run: |
+          RUN_ID="${{ steps.run_job.outputs.job_run_id }}"
+          echo "Fetching task output for job run $RUN_ID"
+          databricks jobs get-run "$RUN_ID" --output json > /tmp/run.json
+          for TASK_RUN_ID in $(python3 -c "import json; d=json.load(open('/tmp/run.json')); print(' '.join(str(t['run_id']) for t in d.get('tasks', [])))"); do
+            echo "=== Task run $TASK_RUN_ID output ==="
+            databricks jobs get-run-output "$TASK_RUN_ID" --output json | python3 -m json.tool || true
+          done
