@@ -35,7 +35,7 @@ def model(dbt, session):
 
     from pyspark.sql import functions as F
 
-    landing_path = f"/Volumes/{dbt.this.database}/{dbt.this.schema}/landing/orders/"
+    landing_path = f"/Volumes/{dbt.this.database}/{dbt.this.schema}/landing/"
 
     df_raw = (
         session.read.format("csv")

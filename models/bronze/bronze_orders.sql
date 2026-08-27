@@ -22,7 +22,7 @@ FROM STREAM read_files(
     -- target.database/target.schema (not a separate var) so this always
     -- matches whatever catalog/schema the active connection is actually
     -- using -- dev vs prod can never drift out of sync with a hardcoded var.
-    '/Volumes/{{ target.database }}/{{ target.schema }}/landing/orders/',
+    '/Volumes/{{ target.database }}/{{ target.schema }}/landing/',
     format => 'csv',
     header => true,
     schema => 'order_id STRING, user_id STRING, amount STRING, status STRING, order_timestamp STRING, shipping_city STRING, shipping_state STRING'
