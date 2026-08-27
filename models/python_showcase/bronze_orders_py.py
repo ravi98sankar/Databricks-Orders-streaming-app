@@ -8,11 +8,17 @@ engineers/leadership can compare both authoring styles for the same
 pipeline. Lands in a distinct table (bronze_orders_py) so it doesn't
 collide with the SQL model's output.
 
-Landing path uses the Spark session's own current catalog/schema (whatever
-the job's dbt_task actually connected with -- medallion_orders_dev vs
-medallion_orders), not a hardcoded constant. An earlier version hardcoded
-this to the literal "medallion_orders", which caused a real SCHEMA_NOT_FOUND
-on the dev target since dev actually runs against medallion_orders_dev.
+Landing path uses dbt.this (the relation this model itself materializes
+into) for catalog/schema, not a hardcoded constant. Two earlier, wrong
+attempts:
+  1. A literal "medallion_orders" constant -- broke on the dev target,
+     which actually runs against medallion_orders_dev.
+  2. session.catalog.currentCatalog()/currentDatabase() -- this does NOT
+     reflect the dbt_task's configured catalog/schema at all; it resolved
+     to the workspace's generic "workspace.default", even though this same
+     model correctly writes its own output to main.medallion_orders_dev
+     (proof dbt itself knows the right target). dbt.this exposes exactly
+     that same target dbt already resolved correctly.
 """
 
 RAW_ORDERS_SCHEMA = (
@@ -29,9 +35,7 @@ def model(dbt, session):
 
     from pyspark.sql import functions as F
 
-    catalog = session.catalog.currentCatalog()
-    schema = session.catalog.currentDatabase()
-    landing_path = f"/Volumes/{catalog}/{schema}/landing/orders/"
+    landing_path = f"/Volumes/{dbt.this.database}/{dbt.this.schema}/landing/orders/"
 
     df_raw = (
         session.read.format("csv")
