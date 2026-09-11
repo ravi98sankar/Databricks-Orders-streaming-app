@@ -32,3 +32,12 @@ LAKEBASE_PASSWORD = os.getenv("LAKEBASE_PASSWORD", "")
 LOG_LEVEL = "INFO"
 ENABLE_METRICS = True
 METRICS_NAMESPACE = "medallion_pipeline"
+
+# ML / GenAI (scripts/10_train_anomaly_model.py, scripts/11_train_agent_explainer.py)
+ANOMALY_MODEL_NAME = "order_anomaly_model"
+EXPLAINER_MODEL_NAME = "order_anomaly_explainer"
+# Confirmed current pay-per-token Foundation Model endpoint with broad Azure
+# regional coverage -- still worth a one-time `databricks serving-endpoints
+# list` check against the actual workspace before first run, since
+# availability is workspace/region-dependent.
+FM_ENDPOINT_NAME = os.getenv("FM_ENDPOINT_NAME", "databricks-meta-llama-3-3-70b-instruct")

@@ -1,0 +1,59 @@
+name: Deploy ML (prod)
+
+# Manual-dispatch only -- same reasoning as deploy-ml-dev.yml.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  deploy-ml-prod:
+    name: Deploy ML resources to prod
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      BUNDLE_VAR_service_principal_id: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      BUNDLE_VAR_warehouse_id: ${{ secrets.DATABRICKS_WAREHOUSE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Validate bundle
+        run: databricks bundle validate -t prod
+
+      # See deploy-ml-dev.yml for why this is deliberate, not a mask for
+      # real failures: model_serving_endpoints needs entity_version "1" to
+      # already exist, which only happens after ml_training_job has run once.
+      - name: Deploy bundle
+        id: deploy
+        continue-on-error: true
+        run: databricks bundle deploy -t prod
+
+      - name: Run ML training job
+        id: run_job
+        run: |
+          set +e
+          databricks bundle run ml_training_job -t prod 2>&1 | tee /tmp/run_output.log
+          status=${PIPESTATUS[0]}
+          run_id=$(grep -oE 'runs/[0-9]+' /tmp/run_output.log | head -1 | grep -oE '[0-9]+')
+          echo "job_run_id=$run_id" >> "$GITHUB_OUTPUT"
+          exit $status
+
+      - name: Show task output on failure
+        if: failure() && steps.run_job.outputs.job_run_id != ''
+        run: |
+          RUN_ID="${{ steps.run_job.outputs.job_run_id }}"
+          echo "Fetching task output for job run $RUN_ID"
+          databricks jobs get-run "$RUN_ID" --output json > /tmp/run.json
+          for TASK_RUN_ID in $(python3 -c "import json; d=json.load(open('/tmp/run.json')); print(' '.join(str(t['run_id']) for t in d.get('tasks', [])))"); do
+            echo "=== Task run $TASK_RUN_ID output ==="
+            databricks jobs get-run-output "$TASK_RUN_ID" --output json | python3 -m json.tool || true
+          done
+
+      - name: Warn if deploy had errors
+        if: steps.deploy.outcome == 'failure'
+        run: |
+          echo "::warning::databricks bundle deploy reported errors (continue-on-error masked it so training could still run -- likely the expected first-run endpoint-bootstrap gap). Re-run this workflow once training succeeds to pick up the serving endpoints."
